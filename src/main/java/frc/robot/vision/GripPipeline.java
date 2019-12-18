@@ -26,7 +26,7 @@ import org.opencv.imgproc.*;
 *
 * @author GRIP
 */
-public class GripPipeline implements VisionPipeline {
+public class GripPipeline implements ContourFilterer {
 
 	//Outputs
 	private Mat hsvThresholdOutput = new Mat();

@@ -8,12 +8,13 @@
 package frc.robot;
 
 import edu.wpi.cscore.UsbCamera;
+import edu.wpi.cscore.VideoSource.ConnectionStrategy;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.cscore.CvSource;
-//import edu.wpi.cscore.CvSink;
+import edu.wpi.cscore.CvSink;
 import java.util.ArrayList;
 //import org.opencv.core.*;
 //import org.opencv.core.Core.*;
@@ -22,8 +23,10 @@ import org.opencv.imgproc.*;
 //import org.opencv.objdetect.*;
 
 import frc.robot.vision.GripPipeline;
-import frc.robot.vision.RectGet;
+import frc.robot.vision.VerticalTarget;
+import frc.robot.vision.PreProc;
 import edu.wpi.first.vision.VisionThread;
+
 import org.opencv.core.*;
 
 /**
@@ -39,37 +42,31 @@ public class Robot extends TimedRobot {
   private String m_autoSelected;
   private final SendableChooser<String> m_chooser = new SendableChooser<>();
   private VisionThread visionThread;
+  private PreProc preProc;
+  private VerticalTarget stickyNote;
   /**
    * This function is run when the robot is first started up and should be
    * used for any initialization code.
    */
   @Override
   public void robotInit() {
+    //UsbCamera camera = CameraServer.getInstance().startAutomaticCapture();
+    //camera.setConnectionStrategy(ConnectionStrategy.kKeepOpen);
+    //camera.setWhiteBalanceAuto();
+    //camera.setExposureAuto();
+    
+    //Mat mat = new Mat();
+    //CvSink cvs = CameraServer.getInstance().getVideo();
+    //cvs.grabFrame(mat);
+    //System.out.println(cvs.getError());
+
     m_chooser.setDefaultOption("Default Auto", kDefaultAuto);
     m_chooser.addOption("My Auto", kCustomAuto);
     SmartDashboard.putData("Auto choices", m_chooser);
 
-    UsbCamera camera = CameraServer.getInstance().startAutomaticCapture(0);
-    camera.setResolution(RobotMap.IMG_WIDTH, RobotMap.IMG_HEIGHT);
-    CvSource outputStream = CameraServer.getInstance().putVideo("Contours", 320, 240);
-    RectGet rg = new RectGet();
-    visionThread = new VisionThread(camera, new GripPipeline(), pipeline -> {
-      ArrayList<MatOfPoint> contours = pipeline.filterContoursOutput();
-      if (!contours.isEmpty()) {
-        Rect r = new Rect();
-        rg.getRectangle(contours.get(0), r);
-        Mat dst = new Mat(320, 240, CvType.makeType(16, 3));
-        //rg.drawRectangle(contours);
-        for (int i = 0; i < contours.size(); i++ ) {
-          Imgproc.drawContours(dst, contours, i, new Scalar(255, 1, 1));
-        }
-        
-        outputStream.putFrame(dst);
-        SmartDashboard.putNumber("Rect: ", r.x);
-        System.out.println(r.x);
-      }
-    });
-    visionThread.start();
+    preProc = new PreProc(0, new GripPipeline());
+    preProc.start();
+    stickyNote = new VerticalTarget(preProc, 0.15, 3, 3);
   }
 
   /**
@@ -82,6 +79,10 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void robotPeriodic() {
+    SmartDashboard.putNumber("Distance", stickyNote.getDistance());
+    System.out.println("Distance: " + stickyNote.getDistance());
+    SmartDashboard.putNumber("Theta", stickyNote.getTheta());
+    System.out.println("Theta: " + stickyNote.getTheta());
   }
 
   /**
@@ -116,6 +117,7 @@ public class Robot extends TimedRobot {
         // Put default auto code here
         break;
     }
+    teleopPeriodic();
   }
 
   /**
@@ -123,6 +125,7 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void teleopPeriodic() {
+    
   }
 
   /**
